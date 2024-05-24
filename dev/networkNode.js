@@ -28,10 +28,15 @@ app.post("/transaction", function (req, res) {
 
 // broadcast transaction
 app.post("/transaction/broadcast", function (req, res) {
+  const { amount, sender, recipient } = req.body;
+  if (!amount || amount < 1 || !sender || !recipient) {
+    return res.status(400).json({ note: "입력값이 잘못되었습니다." });
+  }
+
   const newTransaction = bitcoin.createNewTransaction(
-    req.body.amount,
-    req.body.sender,
-    req.body.recipient
+    amount,
+    sender,
+    recipient
   );
   bitcoin.addTransactionToPendingTransactions(newTransaction);
 
@@ -44,12 +49,25 @@ app.post("/transaction/broadcast", function (req, res) {
       json: true,
     };
 
-    requestPromises.push(rp(requestOptions));
+    requestPromises.push(
+      rp(requestOptions).catch((error) =>
+        console.log(
+          `transaction broadcasting에 실패했습니다. ${requestOptions}`,
+          error
+        )
+      )
+    );
   });
 
-  Promise.all(requestPromises).then((data) => {
-    res.json({ note: "Transaction created and broadcast successfully." });
-  });
+  Promise.all(requestPromises)
+    .then((data) => {
+      res.json({ note: "Transaction created and broadcast successfully." });
+    })
+    .catch((error) => {
+      res
+        .status(500)
+        .json({ note: "transaction broadcasting에 실패했습니다.", error });
+    });
 });
 
 // mine a block
@@ -169,12 +187,10 @@ app.post("/register-and-broadcast-node", function (req, res) {
       res.json({ note: "New node registered with network successfully." });
     })
     .catch((error) => {
-      res
-        .status(500)
-        .json({
-          note: "새로운 노드를 등록하고 broadcast하는데 실패했습니다.",
-          error,
-        });
+      res.status(500).json({
+        note: "새로운 노드를 등록하고 broadcast하는데 실패했습니다.",
+        error,
+      });
     });
 });
 
