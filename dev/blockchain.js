@@ -34,6 +34,11 @@ class Blockchain {
   }
 
   createNewTransaction(amount, sender, recipient) {
+    const senderBalance = this.getAddressData(sender).addressBalance;
+    if (amount > senderBalance) {
+      throw new Error("잔액 부족");
+    }
+
     const newTransaction = {
       amount: amount,
       sender: sender,
