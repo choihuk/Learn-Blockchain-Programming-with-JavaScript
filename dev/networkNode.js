@@ -95,7 +95,14 @@ app.get("/mine", function (req, res) {
       json: true,
     };
 
-    requestPromises.push(rp(requestOptions));
+    requestPromises.push(
+      rp(requestOptions).catch((error) =>
+        console.log(
+          `새로운 block에 broadcasting을 실패했습니다. ${requestOptions}`,
+          error
+        )
+      )
+    );
   });
 
   Promise.all(requestPromises)
@@ -118,6 +125,9 @@ app.get("/mine", function (req, res) {
         note: "New block mined & broadcast successfully",
         block: newBlock,
       });
+    })
+    .catch((error) => {
+      res.status(500).json({ note: "block mining에 실패했습니다.", error });
     });
 });
 
