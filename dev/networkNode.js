@@ -253,40 +253,62 @@ app.get("/consensus", function (req, res) {
       json: true,
     };
 
-    requestPromises.push(rp(requestOptions));
+    requestPromises.push(
+      rp(requestOptions).catch((error) => {
+        console.error(
+          `${networkNodeUrl}에 해당하는 블록체인을 가져오는데 실패했습니다.`,
+          err
+        );
+        return null;
+      })
+    );
   });
 
-  Promise.all(requestPromises).then((blockchains) => {
-    const currentChainLength = bitcoin.chain.length;
-    let maxChainLength = currentChainLength;
-    let newLongestChain = null;
-    let newPendingTransactions = null;
+  Promise.all(requestPromises)
+    .then((blockchains) => {
+      const consensusBlockchains = blockchains.filter(
+        (blockchain) => blockchain !== null
+      );
 
-    blockchains.forEach((blockchain) => {
-      if (blockchain.chain.length > maxChainLength) {
-        maxChainLength = blockchain.chain.length;
-        newLongestChain = blockchain.chain;
-        newPendingTransactions = blockchain.pendingTransactions;
+      if (consensusBlockchains.length === 0) {
+        return res.status(500).json({
+          note: "consensus할 블록체인이 없습니다.",
+        });
       }
-    });
 
-    if (
-      !newLongestChain ||
-      (newLongestChain && !bitcoin.chainIsValid(newLongestChain))
-    ) {
-      res.json({
-        note: "Current chain has not been replaced.",
-        chain: bitcoin.chain,
+      const currentChainLength = bitcoin.chain.length;
+      let maxChainLength = currentChainLength;
+      let newLongestChain = null;
+      let newPendingTransactions = null;
+
+      consensusBlockchains.forEach((blockchain) => {
+        if (blockchain.chain.length > maxChainLength) {
+          maxChainLength = blockchain.chain.length;
+          newLongestChain = blockchain.chain;
+          newPendingTransactions = blockchain.pendingTransactions;
+        }
       });
-    } else {
-      bitcoin.chain = newLongestChain;
-      bitcoin.pendingTransactions = newPendingTransactions;
-      res.json({
-        note: "This chain has been replaced.",
-        chain: bitcoin.chain,
-      });
-    }
-  });
+
+      if (
+        !newLongestChain ||
+        (newLongestChain && !bitcoin.chainIsValid(newLongestChain))
+      ) {
+        res.json({
+          note: "Current chain has not been replaced.",
+          chain: bitcoin.chain,
+        });
+      } else {
+        bitcoin.chain = newLongestChain;
+        bitcoin.pendingTransactions = newPendingTransactions;
+        res.json({
+          note: "This chain has been replaced.",
+          chain: bitcoin.chain,
+        });
+      }
+    })
+    .catch((error) => {
+      res.status(500).json({ note: "consensus 작업에 실패했습니다.", error });
+    });
 });
 
 // get block by blockHash
