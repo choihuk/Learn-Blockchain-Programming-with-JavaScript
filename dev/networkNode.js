@@ -28,15 +28,16 @@ app.post("/transaction", function (req, res) {
 
 // broadcast transaction
 app.post("/transaction/broadcast", function (req, res) {
-  const { amount, sender, recipient } = req.body;
-  if (!amount || amount < 1 || !sender || !recipient) {
+  const { amount, sender, recipient, message } = req.body;
+  if (!amount || amount < 1 || !sender || !recipient || !message) {
     return res.status(400).json({ note: "입력값이 잘못되었습니다." });
   }
 
   const newTransaction = bitcoin.createNewTransaction(
     amount,
     sender,
-    recipient
+    recipient,
+    message
   );
   bitcoin.addTransactionToPendingTransactions(newTransaction);
 
@@ -114,6 +115,7 @@ app.get("/mine", function (req, res) {
           amount: 12.5,
           sender: "00",
           recipient: nodeAddress,
+          message: "mining reward",
         },
         json: true,
       };
@@ -333,11 +335,9 @@ app.get("/transaction/:transactionId", function (req, res) {
   const transactionData = bitcoin.getTransaction(transactionId);
 
   if (!transactionData.transaction || !transactionData.block) {
-    res
-      .status(400)
-      .json({
-        note: `${transactionId}에 해당하는 트랜잭션을 찾을 수 없습니다.`,
-      });
+    res.status(400).json({
+      note: `${transactionId}에 해당하는 트랜잭션을 찾을 수 없습니다.`,
+    });
   }
 
   res.json({

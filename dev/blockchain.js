@@ -33,7 +33,7 @@ class Blockchain {
     return this.chain[this.chain.length - 1];
   }
 
-  createNewTransaction(amount, sender, recipient) {
+  createNewTransaction(amount, sender, recipient, message) {
     const senderBalance = this.getAddressData(sender).addressBalance;
     if (amount > senderBalance) {
       throw new Error("잔액 부족");
@@ -43,6 +43,7 @@ class Blockchain {
       amount: amount,
       sender: sender,
       recipient: recipient,
+      message: message,
       transactionId: uuid().split("-").join(""),
     };
 
