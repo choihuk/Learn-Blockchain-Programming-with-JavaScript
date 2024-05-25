@@ -315,6 +315,13 @@ app.get("/consensus", function (req, res) {
 app.get("/block/:blockHash", function (req, res) {
   const blockHash = req.params.blockHash;
   const correctBlock = bitcoin.getBlock(blockHash);
+
+  if (!correctBlock) {
+    res
+      .status(400)
+      .json({ note: `${blockHash}에 해당하는 block을 찾을 수 없습니다.` });
+  }
+
   res.json({
     block: correctBlock,
   });
@@ -323,10 +330,19 @@ app.get("/block/:blockHash", function (req, res) {
 // get transaction by transactionId
 app.get("/transaction/:transactionId", function (req, res) {
   const transactionId = req.params.transactionId;
-  const trasactionData = bitcoin.getTransaction(transactionId);
+  const transactionData = bitcoin.getTransaction(transactionId);
+
+  if (!transactionData.transaction || !transactionData.block) {
+    res
+      .status(400)
+      .json({
+        note: `${transactionId}에 해당하는 트랜잭션을 찾을 수 없습니다.`,
+      });
+  }
+
   res.json({
-    transaction: trasactionData.transaction,
-    block: trasactionData.block,
+    transaction: transactionData.transaction,
+    block: transactionData.block,
   });
 });
 
